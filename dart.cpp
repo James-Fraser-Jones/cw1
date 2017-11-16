@@ -47,7 +47,7 @@ int main( int argc, const char** argv )
 	string outputname = detected + argv1;
 
 	// 4. Save Result Image
-	imwrite(outputname, frame);
+	//imwrite(outputname, frame);
 
 	return 0;
 }
@@ -71,6 +71,7 @@ void detectAndDisplay( Mat frame )
        // 4. Draw box around faces found
 	for( int i = 0; i < faces.size(); i++ )
 	{
+		printf("(%d,%d,%d,%d), ", faces[i].x, faces[i].y, faces[i].x + faces[i].width, faces[i].y + faces[i].height);
 		rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
 	}
 
