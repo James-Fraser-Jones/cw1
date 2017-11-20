@@ -22,11 +22,11 @@ intersection b1 b2 = (xOverlap b1 b2) * (yOverlap b1 b2)
 union :: Box -> Box -> Int
 union b1 b2 = (area b1) + (area b2) - (intersection b1 b2)
 
---uoi = union/intersection
+--iou = intersection/union
 iou :: Box -> Box -> Float
 iou b1 b2 = (fromIntegral(intersection b1 b2)) / (fromIntegral(union b1 b2))
 
---match = (uoi >= 0.5)
+--match = (iou >= 0.5)
 match :: Box -> Box -> Bool
 match b1 b2 = (iou b1 b2) >= 0.5
 
@@ -44,6 +44,15 @@ matchAll' detecteds (x:xs) = matchMany detecteds x : matchAll' detecteds xs
 
 matchAll :: [Box] -> [Box] -> Int
 matchAll detecteds grounds = sum(fmap (\x -> if x == True then 1 else 0) (matchAll' detecteds grounds))
+
+test :: [Box] -> [Box] -> Int
+test gs ds = matchAll ds gs
+-----------------------------------------------------------------------------------------------------------------------
+fScore :: [Box] -> [Box] -> Float
+fScore gs ds = 2*f/(d+a) where
+  f = fromIntegral (test gs ds)
+  d = fromIntegral (length ds)
+  a = fromIntegral (length gs)
 -----------------------------------------------------------------------------------------------------------------------
 g0, g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13, g14, g15 :: [Box]
 g0 = [(423, 1, 620, 218)]
@@ -62,6 +71,3 @@ g12 = [(147, 59, 227, 236)]
 g13 = [(252, 101, 423, 271)]
 g14 = [(102, 87, 265, 247),(968, 79, 1131, 240)]
 g15 = [(130, 32, 304, 216)]
-
-test :: [Box] -> [Box] -> Int
-test gs ds = matchAll ds gs
