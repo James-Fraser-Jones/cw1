@@ -29,7 +29,6 @@ iou b1 b2 = (fromIntegral(intersection b1 b2)) / (fromIntegral(union b1 b2))
 --match = (iou >= 0.5)
 match :: Box -> Box -> Bool
 match b1 b2 = (iou b1 b2) >= 0.5
-
 -----------------------------------------------------------------------------------------------------------------------
 matchMany' :: [Box] -> Box -> [Bool]
 matchMany' [] ground = []
@@ -42,17 +41,33 @@ matchAll' :: [Box] -> [Box] -> [Bool]
 matchAll' detecteds [] = []
 matchAll' detecteds (x:xs) = matchMany detecteds x : matchAll' detecteds xs
 
+--this function has the potential to incorrectly match the same detected box to multiple ground boxes if the ground boxes are very close together
+--this could therefore give a higher fscore than should be given but it shouldn't happen in practice with any of the test images
 matchAll :: [Box] -> [Box] -> Int
 matchAll detecteds grounds = sum(fmap (\x -> if x == True then 1 else 0) (matchAll' detecteds grounds))
+-----------------------------------------------------------------------------------------------------------------------
+getF :: [Box] -> [Box] -> Float --get F, given ground boxes and detected boxes
+getF gs ds = fromIntegral (matchAll ds gs)
 
-test :: [Box] -> [Box] -> Int
-test gs ds = matchAll ds gs
+getDA :: [Box] -> Float --get D, given detected boxes or A, given ground boxes
+getDA das = fromIntegral (length das)
 -----------------------------------------------------------------------------------------------------------------------
 fScore :: [Box] -> [Box] -> Float
 fScore gs ds = 2*f/(d+a) where
-  f = fromIntegral (test gs ds)
-  d = fromIntegral (length ds)
-  a = fromIntegral (length gs)
+  f = getF gs ds
+  d = getDA ds
+  a = getDA gs
+
+tpr :: [Box] -> [Box] -> Float
+tpr gs ds = f/a where
+  f = getF gs ds
+  a = getDA gs
+
+test :: [Box] -> [Box] -> IO()
+test gs ds = do
+  putStrLn ("\nF Score: " ++ show (fScore gs ds))
+  putStrLn ("    TPR: " ++ show (100*(tpr gs ds)) ++ "%\n")
+  return ()
 -----------------------------------------------------------------------------------------------------------------------
 g0, g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13, g14, g15 :: [Box]
 g0 = [(423, 1, 620, 218)]
