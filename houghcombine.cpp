@@ -12,7 +12,12 @@ void sobel(
   cv::Mat &x_image,
   cv::Mat &y_image);
 
-void mangle(
+void magn(
+  cv::Mat &x_image,
+  cv::Mat &y_image,
+  cv::Mat &mag_image);
+
+void angl(
   cv::Mat &x_image,
   cv::Mat &y_image,
   cv::Mat &mag_image,
@@ -29,6 +34,12 @@ bool houghline(
   double factor,
   int threshold);
 
+bool check(
+  cv::Mat &grey_image,
+  int magthresh,
+  double factor,
+  int linethresh);
+
 int main( int argc, char** argv ){
 
   //read in the original image
@@ -41,6 +52,8 @@ int main( int argc, char** argv ){
 	 return -1;
 	}
 
+////////////////////////////////////////////////////////////////////////////////////////////////
+
   //create all our images for manipulating
   Mat grey_image, x_image, y_image, mag_image, ang_image, thresh_image, line_image;
   cvtColor( image, grey_image, CV_BGR2GRAY );
@@ -51,18 +64,17 @@ int main( int argc, char** argv ){
   mag_image.create(grey_image.size(), grey_image.type());
   thresh_image.create(grey_image.size(), grey_image.type());
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+  //*
 
   //use sobel convolution to get x and y derivative images
   sobel(grey_image, x_image, y_image);
 
   //use x and y derivative images to get magnitude and angle images
-  mangle(x_image, y_image, mag_image, ang_image);
+  magn(x_image, y_image, mag_image);
+  angl(x_image, y_image, mag_image, ang_image);
 
   //threshold values from magnitude image to get thresholded image
   thresh(mag_image, thresh_image, 40);
-
-////////////////////////////////////////////////////////////////////////////////////////////////
 
   if (houghline(thresh_image, line_image, 0.5, 15)){
 		printf("Image is a dartboard.\n");
@@ -71,19 +83,36 @@ int main( int argc, char** argv ){
 		printf("Image is not a dartboard.\n");
 	}
 
+  //*/
+
+  /*
+  if (check(grey_image, 40, 0.5, 15)){
+		printf("Image is DEFINITELY a dartboard.\n");
+	}
+	else{
+		printf("Image is DEFINITELY NOT not a dartboard.\n");
+	}
+  //*/
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
   //show all our images before returning
   namedWindow( "Original", CV_WINDOW_AUTOSIZE );
 	imshow( "Original", image);
-  //namedWindow( "X-gradient", CV_WINDOW_AUTOSIZE );
-	//imshow( "X-gradient", x_image);
-	//namedWindow( "Y-gradient", CV_WINDOW_AUTOSIZE );
-	//imshow( "Y-gradient", y_image);
-  //namedWindow( "Magnitude", CV_WINDOW_AUTOSIZE );
-	//imshow( "Magnitude", mag_image);
-	//cvtColor(ang_image, ang_image, CV_HSV2BGR);
-	//namedWindow("Angle-Colour", CV_WINDOW_AUTOSIZE);
-	//imshow( "Angle-Colour", ang_image);
+
+  //*
+  namedWindow( "X-gradient", CV_WINDOW_AUTOSIZE );
+	imshow( "X-gradient", x_image);
+	namedWindow( "Y-gradient", CV_WINDOW_AUTOSIZE );
+	imshow( "Y-gradient", y_image);
+  namedWindow( "Magnitude", CV_WINDOW_AUTOSIZE );
+	imshow( "Magnitude", mag_image);
+	cvtColor(ang_image, ang_image, CV_HSV2BGR);
+	namedWindow("Angle-Colour", CV_WINDOW_AUTOSIZE);
+	imshow( "Angle-Colour", ang_image);
   namedWindow("Thresholded Magnitude", CV_WINDOW_AUTOSIZE);
+  //*/
+
 	imshow( "Thresholded Magnitude", thresh_image);
   namedWindow("Detected Lines", CV_WINDOW_AUTOSIZE);
 	imshow( "Detected Lines", line_image);
@@ -146,7 +175,7 @@ void sobel(cv::Mat &grey_image, cv::Mat &x_image, cv::Mat &y_image){
 	}
 }
 
-void mangle(cv::Mat &x_image, cv::Mat &y_image, cv::Mat &mag_image, cv::Mat &ang_image){
+void magn(cv::Mat &x_image, cv::Mat &y_image, cv::Mat &mag_image){
   for ( int i = 0; i < (x_image.rows); i++){
 		for( int j = 0; j < (x_image.cols); j++){
 
@@ -156,14 +185,24 @@ void mangle(cv::Mat &x_image, cv::Mat &y_image, cv::Mat &mag_image, cv::Mat &ang
 			double mag = sqrt((xval*xval) + (yval*yval));
 			mag = mag * (255/sqrt(2*127.5*127.5)); //normalization
 			mag_image.at<uchar>(i, j) = (uchar) (mag);
+		}
+	}
+}
+
+void angl(cv::Mat &x_image, cv::Mat &y_image, cv::Mat &mag_image, cv::Mat &ang_image){
+  for ( int i = 0; i < (x_image.rows); i++){
+		for( int j = 0; j < (x_image.cols); j++){
+
+			double xval = ((double) x_image.at<uchar>(i, j)) - 127.5; //centre values around 0
+			double yval = ((double) y_image.at<uchar>(i, j)) - 127.5;
 
 			double ang = atan2(yval,xval);
 			ang = ang * (90/CV_PI) + 90; //normalization
 			ang_image.at<Vec3b>(i, j)[0] = ang;
 			ang_image.at<Vec3b>(i, j)[1] = 255;
-			ang_image.at<Vec3b>(i, j)[2] = mag;
-		}
-	}
+			ang_image.at<Vec3b>(i, j)[2] = (uchar) mag_image.at<uchar>(i, j);
+	   }
+   }
 }
 
 void thresh(cv::Mat &mag_image, cv::Mat &thresh_image, int threshold){
@@ -202,5 +241,25 @@ bool houghline(cv::Mat &thresh_image, cv::Mat &line_image, double factor, int th
 		return true;
 	}
 
+	return false;
+}
+
+bool check(cv::Mat &grey_image, int magthresh, double factor, int linethresh){ //40, 0.5, 15 seem like sensible parameters for now
+
+  Mat x_image, y_image, mag_image;
+  x_image.create(grey_image.size(), grey_image.type());
+  y_image.create(grey_image.size(), grey_image.type());
+  mag_image.create(grey_image.size(), grey_image.type());
+
+  sobel(grey_image, x_image, y_image);
+  magn(x_image, y_image, mag_image);
+  thresh(mag_image, mag_image, magthresh);
+
+  vector<Vec2f> lines;
+	HoughLines(mag_image, lines, 1, CV_PI/180, cvRound(factor*mag_image.rows), 0, 0 );
+
+  if (lines.size() > linethresh){
+		return true;
+	}
 	return false;
 }
