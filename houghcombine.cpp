@@ -219,7 +219,6 @@ void thresh(cv::Mat &mag_image, cv::Mat &thresh_image, int threshold){
 }
 
 bool houghline(cv::Mat &thresh_image, cv::Mat &line_image, double factor, int threshold){
-
 	vector<Vec2f> lines;
 	HoughLines(thresh_image, lines, 1, CV_PI/180, cvRound(factor*thresh_image.rows), 0, 0 );
 
@@ -240,7 +239,6 @@ bool houghline(cv::Mat &thresh_image, cv::Mat &line_image, double factor, int th
 	if (lines.size() > threshold){
 		return true;
 	}
-
 	return false;
 }
 
