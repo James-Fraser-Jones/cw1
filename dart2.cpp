@@ -16,12 +16,13 @@
 #include <stdio.h>
 
 #include <string>
+#include <fstream>
 
 using namespace std;
 using namespace cv;
 
 /** Function Headers */
-void detectAndDisplay( Mat frame, Mat filteredframe, int magthresh, double factor, int linethresh );
+void detectAndDisplay( Mat frame, Mat filteredframe, int magthresh, double factor, int linethresh, ofstream& myfile);
 
 void sobel(cv::Mat &grey_image, cv::Mat &x_image, cv::Mat &y_image){
 
@@ -140,16 +141,16 @@ int main( int argc, const char** argv ){
 	sscanf(argv[2],"%lf", &factor);
 	sscanf(argv[3],"%d", &linethresh);
 
-	//printf("magthresh := %d, factor := %f, linethres := %d\n", magthresh, factor, linethresh);
+  //open bounding text file
+  ofstream myfile;
+  myfile.open ("bounding.txt");
 
-	int images[9] = {1,2,3,4,8,9,11,13,14};
-
-	for (int k = 0; k < (sizeof(images)/sizeof(int)); k++){
+	for (int i = 0; i < 16; i++){
 
 		// 1. Read Input Image
 		char * file = new char[16];
-		sprintf(file, "tests/dart%d.jpg", images[k]);
-		printf("image: %d\n", images[k]);
+		sprintf(file, "tests/dart%d.jpg", i);
+		printf("image: %d\n", i);
 
 		Mat frame = imread(file, CV_LOAD_IMAGE_COLOR);
 		Mat filteredframe = frame.clone();
@@ -158,7 +159,8 @@ int main( int argc, const char** argv ){
 		if( !cascade.load( cascade_name ) ){ printf("--(!)Error loading\n"); return -1; };
 
 		// 3. Detect Faces and Display Result
-		detectAndDisplay( frame, filteredframe, magthresh, factor, linethresh);
+		detectAndDisplay( frame, filteredframe, magthresh, factor, linethresh, myfile);
+    myfile << "\n";
 
 		string argv1 (file);
 		argv1.erase(0,6); //strip off "tests/" from filename
@@ -171,14 +173,18 @@ int main( int argc, const char** argv ){
 		string outputname2 = subtask3 + filename + filtered;
 
 		// 4. Save Result Image
-		imwrite(outputname, frame);
+		//imwrite(outputname, frame);
 		imwrite(outputname2, filteredframe);
 	}
+
+  //close bounding text file
+  myfile.close();
+
 	return 0;
 }
 
 /** @function detectAndDisplay */
-void detectAndDisplay( Mat frame, Mat filteredframe, int magthresh, double factor, int linethresh )
+void detectAndDisplay( Mat frame, Mat filteredframe, int magthresh, double factor, int linethresh, ofstream& myfile)
 {
 	std::vector<Rect> faces;
 	Mat frame_gray;
@@ -193,6 +199,8 @@ void detectAndDisplay( Mat frame, Mat filteredframe, int magthresh, double facto
   // 3. Print number of Faces found
 	std::cout << faces.size() << std::endl;
 
+  char * buffer = new char[30];
+
   // 4. Draw box around faces found
 	int count = 0;
 	for( int i = 0; i < faces.size(); i++ ){
@@ -205,6 +213,8 @@ void detectAndDisplay( Mat frame, Mat filteredframe, int magthresh, double facto
 		if (check(roi, magthresh, factor, linethresh)){
 			rectangle(filteredframe, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
 			count++;
+      sprintf(buffer, "%d %d %d %d ", faces[i].x, faces[i].y, faces[i].x + faces[i].width, faces[i].y + faces[i].height);
+      myfile << buffer;
 		}
 		rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar( 0, 255, 0 ), 2);
 	}

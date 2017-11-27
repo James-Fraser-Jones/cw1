@@ -1,4 +1,5 @@
 import Prelude
+import Data.Functor
 
 type Box = (Int, Int, Int, Int)
 
@@ -63,11 +64,31 @@ tpr gs ds = f/a where
   f = getF gs ds
   a = getDA gs
 
-test :: [Box] -> [Box] -> IO()
+test :: [Box] -> [Box] -> IO Float
 test gs ds = do
-  putStrLn ("\nF Score: " ++ show (fScore gs ds))
-  putStrLn ("    TPR: " ++ show (100*(tpr gs ds)) ++ "%\n")
+  putStrLn ("F-Score: " ++ show (fScore gs ds) ++ ", TPR: " ++ show (100*(tpr gs ds)) ++ "%\n")
+  return (fScore gs ds)
+-----------------------------------------------------------------------------------------------------------------------
+parse :: String -> [[Box]]
+parse s = boxed <$> (nums (words <$> (lines s)))
+    where nums [] = []
+          nums (x:xs) = (read <$> x) : (nums xs)
+          boxed [] = []
+          boxed (a:b:c:d:xs) = (a,b,c,d):(boxed xs)
+
+testAll' :: [[Box]] -> [[Box]] -> Int -> Float -> IO()
+testAll' [] [] n su = do
+  putStrLn ("Average F-Score: " ++ show(su/16) ++ "\n")
   return ()
+testAll' (x:xs) (y:ys) n su = do
+  putStrLn (" Dart" ++ show(n) ++":")
+  x <- test x y
+  testAll' xs ys (n+1) (su + x)
+
+testAll :: FilePath -> IO()
+testAll file = do
+  x <- readFile file
+  testAll' allgrounds (parse x) 0 0
 -----------------------------------------------------------------------------------------------------------------------
 g0, g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13, g14, g15 :: [Box]
 g0 = [(423, 1, 620, 218)]
@@ -86,3 +107,6 @@ g12 = [(147, 59, 227, 236)]
 g13 = [(252, 101, 423, 271)]
 g14 = [(102, 87, 265, 247),(968, 79, 1131, 240)]
 g15 = [(130, 32, 304, 216)]
+
+allgrounds :: [[Box]]
+allgrounds = [g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12,g13,g14,g15]
