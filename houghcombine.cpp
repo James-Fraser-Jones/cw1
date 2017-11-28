@@ -40,6 +40,47 @@ bool check(
   double factor,
   int linethresh);
 
+void houghtest(
+  cv::Mat &hough_image,
+  int x,
+  int y);
+
+void hough(cv::Mat &thresh_image, cv::Mat &hough_image){
+  for ( int y = 0; y < thresh_image.rows; y++ ){
+		for( int x = 0; x < thresh_image.cols; x++ ){
+      int val = thresh_image.at<int>(x, y);
+      if (val == 255){
+
+        for( int y2 = 0; y2 < hough_image.rows; y2++ ){
+          double theta = y2 * (2*CV_PI/hough_image.rows);
+          double rho = x*cos(theta) + y*sin(theta);
+
+          int x2 = cvRound( (rho + (x+y)) * ((hough_image.cols-1)/(2*(x+y))) ); //?????????????????????????????????????
+
+          val = hough_image.at<int>(x2, y2);
+          hough_image.at<uchar>(x2, y2) = (uchar) (val + 30);
+        }
+
+      }
+	  }
+  }
+}
+
+void houghtest(cv::Mat &hough_image, int x, int y){
+
+  for( int y2 = 0; y2 < hough_image.cols; y2++ ){
+    double theta = y2 * (2*CV_PI/hough_image.rows);
+    double rho = abs(x*cos(theta) + y*sin(theta));
+
+    int x2 = cvRound(rho * ((hough_image.cols-1)/(hough_image.cols*hough_image.rows))); //?????????????????????????????????????
+
+    printf("x2 = %f * ((%d-1)/(%d*%d))\n", rho, hough_image.cols, hough_image.cols, hough_image.rows);
+
+    int val = hough_image.at<int>(x2, y2);
+    hough_image.at<uchar>(x2, y2) = (uchar) (val + 30);
+  }
+}
+
 int main( int argc, char** argv ){
 
   //read in the original image
@@ -55,7 +96,7 @@ int main( int argc, char** argv ){
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
   //create all our images for manipulating
-  Mat grey_image, x_image, y_image, mag_image, ang_image, thresh_image, line_image;
+  Mat grey_image, x_image, y_image, mag_image, ang_image, thresh_image, line_image, hough_image;
   cvtColor( image, grey_image, CV_BGR2GRAY );
   cvtColor( image, ang_image, CV_BGR2HSV );
   cvtColor( grey_image, line_image, CV_GRAY2BGR );
@@ -63,7 +104,7 @@ int main( int argc, char** argv ){
   y_image.create(grey_image.size(), grey_image.type());
   mag_image.create(grey_image.size(), grey_image.type());
   thresh_image.create(grey_image.size(), grey_image.type());
-
+  hough_image.create(grey_image.size(), grey_image.type());
   //*
 
   //use sobel convolution to get x and y derivative images
@@ -76,13 +117,18 @@ int main( int argc, char** argv ){
   //threshold values from magnitude image to get thresholded image
   thresh(mag_image, thresh_image, 40);
 
-  if (houghline(thresh_image, line_image, 0.5, 15)){
-		printf("Image is a dartboard.\n");
-	}
-	else{
-		printf("Image is not a dartboard.\n");
-	}
+  //hough(thresh_image, hough_image);
 
+  //*
+  houghtest(hough_image, 0, 0);
+  houghtest(hough_image, 0, 283);
+  houghtest(hough_image, 0, 566);
+  houghtest(hough_image, 283, 0);
+  houghtest(hough_image, 283, 283);
+  houghtest(hough_image, 283, 566);
+  houghtest(hough_image, 566, 0);
+  houghtest(hough_image, 566, 283);
+  houghtest(hough_image, 566, 566);
   //*/
 
   /*
@@ -100,7 +146,7 @@ int main( int argc, char** argv ){
   namedWindow( "Original", CV_WINDOW_AUTOSIZE );
 	imshow( "Original", image);
 
-  //*
+  /*
   namedWindow( "X-gradient", CV_WINDOW_AUTOSIZE );
 	imshow( "X-gradient", x_image);
 	namedWindow( "Y-gradient", CV_WINDOW_AUTOSIZE );
@@ -110,12 +156,14 @@ int main( int argc, char** argv ){
 	cvtColor(ang_image, ang_image, CV_HSV2BGR);
 	namedWindow("Angle-Colour", CV_WINDOW_AUTOSIZE);
 	imshow( "Angle-Colour", ang_image);
-  namedWindow("Thresholded Magnitude", CV_WINDOW_AUTOSIZE);
   //*/
 
+  namedWindow("Thresholded Magnitude", CV_WINDOW_AUTOSIZE);
 	imshow( "Thresholded Magnitude", thresh_image);
-  namedWindow("Detected Lines", CV_WINDOW_AUTOSIZE);
-	imshow( "Detected Lines", line_image);
+  //namedWindow("Detected Lines", CV_WINDOW_AUTOSIZE);
+	//imshow( "Detected Lines", line_image);
+  namedWindow("Hough Space", CV_WINDOW_AUTOSIZE);
+	imshow( "Hough Space", hough_image);
   waitKey(0);
 
 	return 0;

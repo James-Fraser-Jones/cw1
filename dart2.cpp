@@ -105,6 +105,10 @@ void thresh(cv::Mat &mag_image, cv::Mat &thresh_image, int threshold){
 	}
 }
 
+void hough(cv::Mat &thresh_image, cv::Mat &hough_image){
+
+}
+
 bool check(cv::Mat &grey_image, int magthresh, double factor, int linethresh){ //40, 0.5, 15 seem like sensible parameters for now
 
   Mat x_image, y_image, mag_image;
