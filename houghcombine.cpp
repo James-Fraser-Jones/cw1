@@ -42,94 +42,15 @@ bool check(
 
 void houghtest(
   cv::Mat &hough_image,
-  int x,
-  int y);
+  float xpercent,
+  float ypercent);
 
-void hough(cv::Mat &thresh_image, cv::Mat &hough_image){
-  double yscale = 0.6;
-  int brightness = 4;
+void hough(
+  cv::Mat &thresh_image,
+  cv::Mat &hough_image);
 
-  for ( int y = 0; y < thresh_image.rows; y++ ){
-		for( int x = 0; x < thresh_image.cols; x++ ){
-      int val = thresh_image.at<int>(x, y);
-      if (val == 255){
-
-        double dx = x;
-        double cosFactor = (-2)*(dx/(hough_image.rows-1)) + 1;
-        double dy = y;
-        double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1;
-
-        //printf("(x,y) := (%d,%d)\n", x, y);
-
-        for(int y2 = 0; y2 < hough_image.rows; y2++){
-          if ((x==406) && (y == 420)){
-            printf("y2 := %d\n", y2);
-          }
-
-          double theta = y2 * (CV_PI/hough_image.rows);
-
-          //int x2 = cvRound(hough_image.cols/2 - hough_image.cols*sinFactor*sin(theta)/2);
-          int x2 = cvRound(hough_image.cols/2 - yscale*hough_image.cols*(cosFactor*cos(theta)+sinFactor*sin(theta))/2);
-
-          if (x2 < 0){
-            x2 = 0;
-          }
-          else if (x2 > hough_image.cols-1){
-            x2 = hough_image.cols-1;
-          }
-
-          //printf("x2 := %d, y2 := %d, sinFactor := %d*(-2/(%d-1)) + 1 = %f\n", x2, y2, y, hough_image.rows, sinFactor);
-          //int val = hough_image.at<int>(x2, y2);
-          //hough_image.at<uchar>(x2, y2) = (uchar) (val + 30);
-          int val = hough_image.at<int>(x2, y2);
-          if (val + brightness <= 255){
-            hough_image.at<uchar>(x2, y2) += (uchar) (brightness);
-          }
-          else{
-            hough_image.at<uchar>(x2, y2) = 255;
-          }
-
-        }
-
-      }
-	  }
-  }
-}
-
-void houghtest(cv::Mat &hough_image, int x, int y){
-  double yscale = 0.6;
-  int brightness = 4;
-
-  double dx = x;
-  double cosFactor = (-2)*(dx/(hough_image.rows-1)) + 1;
-  double dy = y;
-  double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1;
-
-  for(int y2 = 0; y2 < hough_image.rows; y2++){
-    double theta = y2 * (2*CV_PI/hough_image.rows);
-
-    //int x2 = cvRound(hough_image.cols/2 - hough_image.cols*sinFactor*sin(theta)/2);
-    int x2 = cvRound(hough_image.cols/2 - yscale*hough_image.cols*(cosFactor*cos(theta)+sinFactor*sin(theta))/2);
-
-    if (x2 < 0){
-      x2 = 0;
-    }
-    else if (x2 > hough_image.cols-1){
-      x2 = hough_image.cols-1;
-    }
-
-    //printf("x2 := %d, y2 := %d, sinFactor := %d*(-2/(%d-1)) + 1 = %f\n", x2, y2, y, hough_image.rows, sinFactor);
-
-    int val = hough_image.at<int>(x2, y2);
-    if (val + brightness <= 255){
-      hough_image.at<uchar>(x2, y2) += (uchar) (brightness);
-    }
-    else{
-      hough_image.at<uchar>(x2, y2) = 255;
-    }
-
-  }
-}
+void linetest(
+  cv::Mat &hough_image);
 
 int main( int argc, char** argv ){
 
@@ -147,7 +68,6 @@ int main( int argc, char** argv ){
   Mat grey_image, x_image, y_image, mag_image, ang_image, thresh_image, hough_image;
   cvtColor( image, grey_image, CV_BGR2GRAY );
   cvtColor( image, ang_image, CV_BGR2HSV );
-
   x_image.create(grey_image.size(), grey_image.type());
   y_image.create(grey_image.size(), grey_image.type());
   mag_image.create(grey_image.size(), grey_image.type());
@@ -165,29 +85,21 @@ int main( int argc, char** argv ){
   //threshold values from magnitude image to get thresholded image
   thresh(mag_image, thresh_image, 7);
 
-  hough(thresh_image, hough_image);
-  /*
-  houghtest(hough_image, 0, 0);
-  houghtest(hough_image, 100, 100);
-  houghtest(hough_image, 283, 283);
-  houghtest(hough_image, 400, 400);
-  houghtest(hough_image, 566, 566);
-  //*/
-
-  /*
-  houghtest(hough_image, 0, 566);
-  houghtest(hough_image, 283, 0);
-  houghtest(hough_image, 283, 283);
-  houghtest(hough_image, 283, 566);
-  houghtest(hough_image, 566, 0);
-  houghtest(hough_image, 566, 283);
-  houghtest(hough_image, 566, 566);
-  //*/
+  //hough(thresh_image, hough_image);
+  houghtest(hough_image, 0, 0); // cos + sin
+  houghtest(hough_image, 0, 0.5); // cos + 0
+  houghtest(hough_image, 0, 1); // cos - sin
+  houghtest(hough_image, 0.5, 0); // 0 + sin
+  houghtest(hough_image, 0.5, 0.5); // 0 + 0
+  houghtest(hough_image, 0.5, 1); // 0 - sin
+  houghtest(hough_image, 1, 0); // -cos + sin
+  houghtest(hough_image, 1, 0.5); // -cos + 0
+  houghtest(hough_image, 1, 1); // -cos - sin
+  //linetest(hough_image);
 
   //show all our images before returning
   namedWindow( "Original", CV_WINDOW_AUTOSIZE );
 	imshow( "Original", image);
-
   /*
   namedWindow( "X-gradient", CV_WINDOW_AUTOSIZE );
 	imshow( "X-gradient", x_image);
@@ -199,7 +111,6 @@ int main( int argc, char** argv ){
 	namedWindow("Angle-Colour", CV_WINDOW_AUTOSIZE);
 	imshow( "Angle-Colour", ang_image);
   //*/
-
   namedWindow("Thresholded Magnitude", CV_WINDOW_AUTOSIZE);
 	imshow( "Thresholded Magnitude", thresh_image);
   namedWindow("Hough Space", CV_WINDOW_AUTOSIZE);
@@ -207,6 +118,103 @@ int main( int argc, char** argv ){
   waitKey(0);
 
 	return 0;
+}
+
+//*
+void hough(cv::Mat &thresh_image, cv::Mat &hough_image){
+  double yscale = 0.8;
+  int brightness = 2;
+
+  for ( int y = 0; y < thresh_image.rows; y++ ){
+		for( int x = 0; x < thresh_image.cols; x++ ){
+      int val = (int) thresh_image.at<uchar>(x, y);
+      if (val > 128){
+
+        double dx = x;
+        double cosFactor = (-2)*(dx/(hough_image.cols-1)) + 1;
+        double dy = y;
+        double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1;
+
+        for(int x2 = 0; x2 < hough_image.cols; x2++){
+          double theta = x2 * (2*CV_PI/hough_image.cols);
+
+          //int x2 = cvRound(hough_image.cols/2 - hough_image.cols*sinFactor*sin(theta)/2);
+          int y2 = cvRound(hough_image.rows/2 - yscale*hough_image.rows*(cosFactor*cos(theta)+sinFactor*sin(theta))/2);
+
+          //this (and y-scale) wouldn't be necessary if you could figure out what yscale should be so that it can never overflow
+          if (y2 < 0){
+            y2 = 0;
+          }
+          else if (y2 > hough_image.rows-1){
+            y2 = hough_image.rows-1;
+          }
+
+          int val = (int) hough_image.at<uchar>(y2, x2);
+          if (val + brightness <= 255){
+            hough_image.at<uchar>(y2, x2) = (uchar) (val + brightness);
+          }
+          else{
+            hough_image.at<uchar>(y2, x2) = 255;
+          }
+        }
+
+      }
+	  }
+  }
+}
+
+//*
+void houghtest(cv::Mat &hough_image, float xpercent, float ypercent){
+
+  int x = cvRound(xpercent*(hough_image.cols-1));
+  int y = cvRound(ypercent*(hough_image.rows-1));
+  //printf("x := %d, y := %d\n", x, y);
+
+  ///////////////////////////////////////////////
+
+  double yscale = 0.5;
+  int brightness = 128;
+
+  double dx = x;
+  double cosFactor = (-2)*(dx/(hough_image.cols-1)) + 1;
+  double dy = y;
+  double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1;
+  printf("cosFactor := %f, sinFactor := %f\n", cosFactor, sinFactor);
+
+  for(int x2 = 0; x2 < hough_image.cols; x2++){
+    double theta = x2 * (2*CV_PI/hough_image.cols);
+
+    //int x2 = cvRound(hough_image.cols/2 - hough_image.cols*sinFactor*sin(theta)/2);
+    int y2 = cvRound(hough_image.rows/2 - yscale*hough_image.rows*(cosFactor*cos(theta)+sinFactor*sin(theta))/2);
+
+    //this (and y-scale) wouldn't be necessary if you could figure out what yscale should be so that it can never overflow
+    if (y2 < 0){
+      y2 = 0;
+    }
+    else if (y2 > hough_image.rows-1){
+      y2 = hough_image.rows-1;
+    }
+
+    //prevent overflow of value accumulator
+    int val = (int) hough_image.at<uchar>(y2, x2);
+    if (val + brightness <= 255){
+      hough_image.at<uchar>(y2, x2) = (uchar) (val + brightness);
+    }
+    else{
+      hough_image.at<uchar>(y2, x2) = 255;
+    }
+
+  }
+}
+//*/
+
+void linetest(cv::Mat &hough_image){
+  for(int x2 = 0; x2 < hough_image.cols; x2++){
+
+    int y2 = cvRound(hough_image.rows/2 + 20);
+    hough_image.at<uchar>(y2, x2) = 255;
+
+  }
 }
 
 void sobel(cv::Mat &grey_image, cv::Mat &x_image, cv::Mat &y_image){
