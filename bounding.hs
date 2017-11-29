@@ -1,5 +1,6 @@
 import Prelude
 import Data.Functor
+import System.Environment
 
 type Box = (Int, Int, Int, Int)
 
@@ -50,31 +51,29 @@ matchAll detecteds grounds = sum(fmap (\x -> if x == True then 1 else 0) (matchA
 getF :: [Box] -> [Box] -> Float --get F, given ground boxes and detected boxes
 getF gs ds = fromIntegral (matchAll ds gs)
 
-getDA :: [Box] -> Float --get D, given detected boxes or A, given ground boxes
-getDA das = fromIntegral (length das)
------------------------------------------------------------------------------------------------------------------------
+getDG :: [Box] -> Float --get D, given detected boxes. Or get G, given ground boxes
+getDG dgs = fromIntegral (length dgs)
+
 fScore :: [Box] -> [Box] -> Float
-fScore gs ds = 2*f/(d+a) where
+fScore gs ds = 2*f/(d+g) where
   f = getF gs ds
-  d = getDA ds
-  a = getDA gs
+  d = getDG ds
+  g = getDG gs
 
 tpr :: [Box] -> [Box] -> Float
-tpr gs ds = f/a where
+tpr gs ds = f/g where
   f = getF gs ds
-  a = getDA gs
+  g = getDG gs
+-----------------------------------------------------------------------------------------------------------------------
+parse :: String -> [[Box]]
+parse s = boxed <$> ((fmap read) <$> (words <$> (lines s)))
+    where boxed [] = []
+          boxed (a:b:c:d:xs) = (a,b,c,d):(boxed xs)
 
 test :: [Box] -> [Box] -> IO Float
 test gs ds = do
   putStrLn ("F-Score: " ++ show (fScore gs ds) ++ ", TPR: " ++ show (100*(tpr gs ds)) ++ "%\n")
   return (fScore gs ds)
------------------------------------------------------------------------------------------------------------------------
-parse :: String -> [[Box]]
-parse s = boxed <$> (nums (words <$> (lines s)))
-    where nums [] = []
-          nums (x:xs) = (read <$> x) : (nums xs)
-          boxed [] = []
-          boxed (a:b:c:d:xs) = (a,b,c,d):(boxed xs)
 
 testAll' :: [[Box]] -> [[Box]] -> Int -> Float -> IO()
 testAll' [] [] n su = do
@@ -85,10 +84,15 @@ testAll' (x:xs) (y:ys) n su = do
   x <- test x y
   testAll' xs ys (n+1) (su + x)
 
-testAll :: FilePath -> IO()
+testAll :: String -> IO()
 testAll file = do
   x <- readFile file
   testAll' allgrounds (parse x) 0 0
+
+main = do
+  x <- getArgs
+  testAll (head x)
+  return ()
 -----------------------------------------------------------------------------------------------------------------------
 g0, g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13, g14, g15 :: [Box]
 g0 = [(423, 1, 620, 218)]

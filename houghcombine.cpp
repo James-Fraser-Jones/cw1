@@ -46,19 +46,36 @@ void houghtest(
   int y);
 
 void hough(cv::Mat &thresh_image, cv::Mat &hough_image){
+  double yscale = 0.6;
+  int brightness = 4;
+
   for ( int y = 0; y < thresh_image.rows; y++ ){
 		for( int x = 0; x < thresh_image.cols; x++ ){
       int val = thresh_image.at<int>(x, y);
       if (val == 255){
 
-        for( int y2 = 0; y2 < hough_image.rows; y2++ ){
-          double theta = y2 * (2*CV_PI/hough_image.rows);
-          double rho = x*cos(theta) + y*sin(theta);
+        double dx = x;
+        double cosFactor = (-2)*(dx/(hough_image.rows-1)) + 1;
+        double dy = y;
+        double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1;
 
-          int x2 = cvRound( (rho + (x+y)) * ((hough_image.cols-1)/(2*(x+y))) ); //?????????????????????????????????????
+        for(int y2 = 0; y2 < hough_image.rows; y2++){
+          double theta = y2 * (CV_PI/hough_image.rows);
 
-          val = hough_image.at<int>(x2, y2);
-          hough_image.at<uchar>(x2, y2) = (uchar) (val + 30);
+          //int x2 = cvRound(hough_image.cols/2 - hough_image.cols*sinFactor*sin(theta)/2);
+          int x2 = cvRound(hough_image.cols/2 - yscale*hough_image.cols*(cosFactor*cos(theta)+sinFactor*sin(theta))/2);
+
+          if (x2 < 0){
+            x2 = 0;
+          }
+          else if (x2 > hough_image.cols-1){
+            x2 = hough_image.cols-1;
+          }
+
+          //printf("x2 := %d, y2 := %d, sinFactor := %d*(-2/(%d-1)) + 1 = %f\n", x2, y2, y, hough_image.rows, sinFactor);
+          //int val = hough_image.at<int>(x2, y2);
+          //hough_image.at<uchar>(x2, y2) = (uchar) (val + 30);
+          hough_image.at<uchar>(x2, y2) += (uchar) (brightness);
         }
 
       }
@@ -67,17 +84,27 @@ void hough(cv::Mat &thresh_image, cv::Mat &hough_image){
 }
 
 void houghtest(cv::Mat &hough_image, int x, int y){
+  double dx = x;
+  double cosFactor = (-2)*(dx/(hough_image.rows-1)) + 1;
+  double dy = y;
+  double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1;
 
-  for( int y2 = 0; y2 < hough_image.cols; y2++ ){
+  for(int y2 = 0; y2 < hough_image.rows; y2++){
     double theta = y2 * (2*CV_PI/hough_image.rows);
-    double rho = abs(x*cos(theta) + y*sin(theta));
 
-    int x2 = cvRound(rho * ((hough_image.cols-1)/(hough_image.cols*hough_image.rows))); //?????????????????????????????????????
+    //int x2 = cvRound(hough_image.cols/2 - hough_image.cols*sinFactor*sin(theta)/2);
+    int x2 = cvRound(hough_image.cols/2 - hough_image.cols*(cosFactor*cos(theta)+sinFactor*sin(theta))/2);
 
-    printf("x2 = %f * ((%d-1)/(%d*%d))\n", rho, hough_image.cols, hough_image.cols, hough_image.rows);
+    if (x2 < 0){
+      x2 = 0;
+    }
+    else if (x2 > hough_image.cols-1){
+      x2 = hough_image.cols-1;
+    }
 
-    int val = hough_image.at<int>(x2, y2);
-    hough_image.at<uchar>(x2, y2) = (uchar) (val + 30);
+    //printf("x2 := %d, y2 := %d, sinFactor := %d*(-2/(%d-1)) + 1 = %f\n", x2, y2, y, hough_image.rows, sinFactor);
+    //int val = hough_image.at<int>(x2, y2);
+    hough_image.at<uchar>(x2, y2) += (uchar) (100);
   }
 }
 
@@ -100,6 +127,7 @@ int main( int argc, char** argv ){
   cvtColor( image, grey_image, CV_BGR2GRAY );
   cvtColor( image, ang_image, CV_BGR2HSV );
   cvtColor( grey_image, line_image, CV_GRAY2BGR );
+  ///////////////////////////////////////////////////////
   x_image.create(grey_image.size(), grey_image.type());
   y_image.create(grey_image.size(), grey_image.type());
   mag_image.create(grey_image.size(), grey_image.type());
@@ -115,13 +143,18 @@ int main( int argc, char** argv ){
   angl(x_image, y_image, mag_image, ang_image);
 
   //threshold values from magnitude image to get thresholded image
-  thresh(mag_image, thresh_image, 40);
+  thresh(mag_image, thresh_image, 8);
 
-  //hough(thresh_image, hough_image);
-
-  //*
+  hough(thresh_image, hough_image);
+  /*
   houghtest(hough_image, 0, 0);
-  houghtest(hough_image, 0, 283);
+  houghtest(hough_image, 100, 100);
+  houghtest(hough_image, 283, 283);
+  houghtest(hough_image, 400, 400);
+  houghtest(hough_image, 566, 566);
+  //*/
+
+  /*
   houghtest(hough_image, 0, 566);
   houghtest(hough_image, 283, 0);
   houghtest(hough_image, 283, 283);
@@ -129,15 +162,6 @@ int main( int argc, char** argv ){
   houghtest(hough_image, 566, 0);
   houghtest(hough_image, 566, 283);
   houghtest(hough_image, 566, 566);
-  //*/
-
-  /*
-  if (check(grey_image, 40, 0.5, 15)){
-		printf("Image is DEFINITELY a dartboard.\n");
-	}
-	else{
-		printf("Image is DEFINITELY NOT not a dartboard.\n");
-	}
   //*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -254,9 +278,11 @@ void angl(cv::Mat &x_image, cv::Mat &y_image, cv::Mat &mag_image, cv::Mat &ang_i
 }
 
 void thresh(cv::Mat &mag_image, cv::Mat &thresh_image, int threshold){
+  double cutoff = threshold*mean(mag_image)[0];
+
   for ( int i = 0; i < mag_image.rows; i++ ){
 		for( int j = 0; j < mag_image.cols; j++ ){
-			if (((int) mag_image.at<uchar>(i,j)) > threshold){
+			if (((int) mag_image.at<uchar>(i,j)) > cutoff){
 				thresh_image.at<uchar>(i,j) = (uchar) 255;
 			}
 			else{

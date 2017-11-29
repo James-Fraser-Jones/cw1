@@ -93,9 +93,12 @@ void magn(cv::Mat &x_image, cv::Mat &y_image, cv::Mat &mag_image){
 }
 
 void thresh(cv::Mat &mag_image, cv::Mat &thresh_image, int threshold){
+
+  double cutoff = threshold*mean(mag_image)[0];
+
   for ( int i = 0; i < mag_image.rows; i++ ){
 		for( int j = 0; j < mag_image.cols; j++ ){
-			if (((int) mag_image.at<uchar>(i,j)) > threshold){
+			if (((int) mag_image.at<uchar>(i,j)) > cutoff){
 				thresh_image.at<uchar>(i,j) = (uchar) 255;
 			}
 			else{
