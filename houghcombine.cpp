@@ -59,7 +59,13 @@ void hough(cv::Mat &thresh_image, cv::Mat &hough_image){
         double dy = y;
         double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1;
 
+        //printf("(x,y) := (%d,%d)\n", x, y);
+
         for(int y2 = 0; y2 < hough_image.rows; y2++){
+          if ((x==406) && (y == 420)){
+            printf("y2 := %d\n", y2);
+          }
+
           double theta = y2 * (CV_PI/hough_image.rows);
 
           //int x2 = cvRound(hough_image.cols/2 - hough_image.cols*sinFactor*sin(theta)/2);
@@ -75,7 +81,14 @@ void hough(cv::Mat &thresh_image, cv::Mat &hough_image){
           //printf("x2 := %d, y2 := %d, sinFactor := %d*(-2/(%d-1)) + 1 = %f\n", x2, y2, y, hough_image.rows, sinFactor);
           //int val = hough_image.at<int>(x2, y2);
           //hough_image.at<uchar>(x2, y2) = (uchar) (val + 30);
-          hough_image.at<uchar>(x2, y2) += (uchar) (brightness);
+          int val = hough_image.at<int>(x2, y2);
+          if (val + brightness <= 255){
+            hough_image.at<uchar>(x2, y2) += (uchar) (brightness);
+          }
+          else{
+            hough_image.at<uchar>(x2, y2) = 255;
+          }
+
         }
 
       }
@@ -84,6 +97,9 @@ void hough(cv::Mat &thresh_image, cv::Mat &hough_image){
 }
 
 void houghtest(cv::Mat &hough_image, int x, int y){
+  double yscale = 0.6;
+  int brightness = 4;
+
   double dx = x;
   double cosFactor = (-2)*(dx/(hough_image.rows-1)) + 1;
   double dy = y;
@@ -93,7 +109,7 @@ void houghtest(cv::Mat &hough_image, int x, int y){
     double theta = y2 * (2*CV_PI/hough_image.rows);
 
     //int x2 = cvRound(hough_image.cols/2 - hough_image.cols*sinFactor*sin(theta)/2);
-    int x2 = cvRound(hough_image.cols/2 - hough_image.cols*(cosFactor*cos(theta)+sinFactor*sin(theta))/2);
+    int x2 = cvRound(hough_image.cols/2 - yscale*hough_image.cols*(cosFactor*cos(theta)+sinFactor*sin(theta))/2);
 
     if (x2 < 0){
       x2 = 0;
@@ -103,8 +119,15 @@ void houghtest(cv::Mat &hough_image, int x, int y){
     }
 
     //printf("x2 := %d, y2 := %d, sinFactor := %d*(-2/(%d-1)) + 1 = %f\n", x2, y2, y, hough_image.rows, sinFactor);
-    //int val = hough_image.at<int>(x2, y2);
-    hough_image.at<uchar>(x2, y2) += (uchar) (100);
+
+    int val = hough_image.at<int>(x2, y2);
+    if (val + brightness <= 255){
+      hough_image.at<uchar>(x2, y2) += (uchar) (brightness);
+    }
+    else{
+      hough_image.at<uchar>(x2, y2) = 255;
+    }
+
   }
 }
 
@@ -120,14 +143,11 @@ int main( int argc, char** argv ){
 	 return -1;
 	}
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-
   //create all our images for manipulating
-  Mat grey_image, x_image, y_image, mag_image, ang_image, thresh_image, line_image, hough_image;
+  Mat grey_image, x_image, y_image, mag_image, ang_image, thresh_image, hough_image;
   cvtColor( image, grey_image, CV_BGR2GRAY );
   cvtColor( image, ang_image, CV_BGR2HSV );
-  cvtColor( grey_image, line_image, CV_GRAY2BGR );
-  ///////////////////////////////////////////////////////
+
   x_image.create(grey_image.size(), grey_image.type());
   y_image.create(grey_image.size(), grey_image.type());
   mag_image.create(grey_image.size(), grey_image.type());
@@ -143,7 +163,7 @@ int main( int argc, char** argv ){
   angl(x_image, y_image, mag_image, ang_image);
 
   //threshold values from magnitude image to get thresholded image
-  thresh(mag_image, thresh_image, 8);
+  thresh(mag_image, thresh_image, 7);
 
   hough(thresh_image, hough_image);
   /*
@@ -164,8 +184,6 @@ int main( int argc, char** argv ){
   houghtest(hough_image, 566, 566);
   //*/
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-
   //show all our images before returning
   namedWindow( "Original", CV_WINDOW_AUTOSIZE );
 	imshow( "Original", image);
@@ -184,8 +202,6 @@ int main( int argc, char** argv ){
 
   namedWindow("Thresholded Magnitude", CV_WINDOW_AUTOSIZE);
 	imshow( "Thresholded Magnitude", thresh_image);
-  //namedWindow("Detected Lines", CV_WINDOW_AUTOSIZE);
-	//imshow( "Detected Lines", line_image);
   namedWindow("Hough Space", CV_WINDOW_AUTOSIZE);
 	imshow( "Hough Space", hough_image);
   waitKey(0);
@@ -290,48 +306,4 @@ void thresh(cv::Mat &mag_image, cv::Mat &thresh_image, int threshold){
 			}
 		}
 	}
-}
-
-bool houghline(cv::Mat &thresh_image, cv::Mat &line_image, double factor, int threshold){
-	vector<Vec2f> lines;
-	HoughLines(thresh_image, lines, 1, CV_PI/180, cvRound(factor*thresh_image.rows), 0, 0 );
-
-	printf("Number of lines:%d\n", lines.size());
-
-	for( size_t i = 0; i < lines.size(); i++ ){
-			float rho = lines[i][0], theta = lines[i][1];
-			Point pt1, pt2;
-			double a = cos(theta), b = sin(theta);
-			double x0 = a*rho, y0 = b*rho;
-			pt1.x = cvRound(x0 + 1000*(-b));
-			pt1.y = cvRound(y0 + 1000*(a));
-			pt2.x = cvRound(x0 - 1000*(-b));
-			pt2.y = cvRound(y0 - 1000*(a));
-			line(line_image, pt1, pt2, Scalar(0,0,255), 2, CV_AA);
-	}
-
-	if (lines.size() > threshold){
-		return true;
-	}
-	return false;
-}
-
-bool check(cv::Mat &grey_image, int magthresh, double factor, int linethresh){ //40, 0.5, 15 seem like sensible parameters for now
-
-  Mat x_image, y_image, mag_image;
-  x_image.create(grey_image.size(), grey_image.type());
-  y_image.create(grey_image.size(), grey_image.type());
-  mag_image.create(grey_image.size(), grey_image.type());
-
-  sobel(grey_image, x_image, y_image);
-  magn(x_image, y_image, mag_image);
-  thresh(mag_image, mag_image, magthresh);
-
-  vector<Vec2f> lines;
-	HoughLines(mag_image, lines, 1, CV_PI/180, cvRound(factor*mag_image.rows), 0, 0 );
-
-  if (lines.size() > linethresh){
-		return true;
-	}
-	return false;
 }
