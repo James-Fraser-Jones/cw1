@@ -28,18 +28,6 @@ void thresh(
   cv::Mat &thresh_image,
   int threshold);
 
-bool houghline(
-  cv::Mat &thresh_image,
-  cv::Mat &line_image,
-  double factor,
-  int threshold);
-
-bool check(
-  cv::Mat &grey_image,
-  int magthresh,
-  double factor,
-  int linethresh);
-
 void houghtest(
   cv::Mat &hough_image,
   float xpercent,
@@ -52,6 +40,11 @@ void hough(
 void linetest(
   cv::Mat &hough_image);
 
+Point points(
+  cv::Mat &thresh_image,
+  cv::Mat &hough_image,
+  cv::Mat &points_image);
+
 int main( int argc, char** argv ){
 
   //read in the original image
@@ -60,32 +53,34 @@ int main( int argc, char** argv ){
 	image = imread( imageName, 1 );
 	if( argc != 2 || !image.data )
 	{
-	 printf( " No image data \n " );
+	 printf( " Error. \n " );
 	 return -1;
 	}
 
   //create all our images for manipulating
-  Mat grey_image, x_image, y_image, mag_image, ang_image, thresh_image, hough_image;
+  Mat grey_image, x_image, y_image, mag_image, ang_image, thresh_image, hough_image, points_image;
   cvtColor( image, grey_image, CV_BGR2GRAY );
+  //cvtColor( grey_image, points_image, CV_GRAY2BGR );
   cvtColor( image, ang_image, CV_BGR2HSV );
   x_image.create(grey_image.size(), grey_image.type());
   y_image.create(grey_image.size(), grey_image.type());
   mag_image.create(grey_image.size(), grey_image.type());
   thresh_image.create(grey_image.size(), grey_image.type());
   hough_image.create(grey_image.size(), grey_image.type());
+  points_image.create(grey_image.size(), grey_image.type());
   //*
 
-  //use sobel convolution to get x and y derivative images
   sobel(grey_image, x_image, y_image);
-
-  //use x and y derivative images to get magnitude and angle images
   magn(x_image, y_image, mag_image);
   angl(x_image, y_image, mag_image, ang_image);
+  thresh(mag_image, thresh_image, 6);
+  //linetest(hough_image);
+  hough(thresh_image, hough_image);
+  Point maxLoc = points(thresh_image, hough_image, points_image);
+  cvtColor( points_image, points_image, CV_GRAY2BGR );
+  circle(points_image, maxLoc, 2, Scalar( 0, 0, 255 ), 2);
 
-  //threshold values from magnitude image to get thresholded image
-  thresh(mag_image, thresh_image, 7);
-
-  //hough(thresh_image, hough_image);
+  /*
   houghtest(hough_image, 0, 0); // cos + sin
   houghtest(hough_image, 0, 0.5); // cos + 0
   houghtest(hough_image, 0, 1); // cos - sin
@@ -95,7 +90,8 @@ int main( int argc, char** argv ){
   houghtest(hough_image, 1, 0); // -cos + sin
   houghtest(hough_image, 1, 0.5); // -cos + 0
   houghtest(hough_image, 1, 1); // -cos - sin
-  //linetest(hough_image);
+  linetest(hough_image);
+  */
 
   //show all our images before returning
   namedWindow( "Original", CV_WINDOW_AUTOSIZE );
@@ -115,52 +111,102 @@ int main( int argc, char** argv ){
 	imshow( "Thresholded Magnitude", thresh_image);
   namedWindow("Hough Space", CV_WINDOW_AUTOSIZE);
 	imshow( "Hough Space", hough_image);
+  namedWindow("Detected Line Intersections", CV_WINDOW_AUTOSIZE);
+	imshow( "Detected Line Intersections", points_image);
   waitKey(0);
 
 	return 0;
 }
 
-//*
-void hough(cv::Mat &thresh_image, cv::Mat &hough_image){
-  double yscale = 0.8;
-  int brightness = 2;
+Point points(cv::Mat &thresh_image, cv::Mat &hough_image, cv::Mat &points_image){
+  int valSum;
 
-  for ( int y = 0; y < thresh_image.rows; y++ ){
-		for( int x = 0; x < thresh_image.cols; x++ ){
-      int val = (int) thresh_image.at<uchar>(x, y);
-      if (val > 128){
+  for (int y = 0; y < points_image.rows; y++){
 
-        double dx = x;
-        double cosFactor = (-2)*(dx/(hough_image.cols-1)) + 1;
-        double dy = y;
-        double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1;
+    double percent = y;
+    percent = 100*y/points_image.rows;
+    printf("%lf\%\n", percent);
 
-        for(int x2 = 0; x2 < hough_image.cols; x2++){
-          double theta = x2 * (2*CV_PI/hough_image.cols);
+    double dy = y; // y: [0, (hough_image.rows-1)]
+    double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1; // sinFactor: [1, -1]
 
-          //int x2 = cvRound(hough_image.cols/2 - hough_image.cols*sinFactor*sin(theta)/2);
-          int y2 = cvRound(hough_image.rows/2 - yscale*hough_image.rows*(cosFactor*cos(theta)+sinFactor*sin(theta))/2);
+		for( int x = 0; x < points_image.cols; x++ ){
 
-          //this (and y-scale) wouldn't be necessary if you could figure out what yscale should be so that it can never overflow
-          if (y2 < 0){
-            y2 = 0;
-          }
-          else if (y2 > hough_image.rows-1){
-            y2 = hough_image.rows-1;
-          }
+      int tval = (int) thresh_image.at<uchar>(y, x);
+      if (tval > 128){
+        valSum = -hough_image.cols;
+      }
+      else{
+        valSum = 0;
+      }
 
-          int val = (int) hough_image.at<uchar>(y2, x2);
-          if (val + brightness <= 255){
-            hough_image.at<uchar>(y2, x2) = (uchar) (val + brightness);
-          }
-          else{
-            hough_image.at<uchar>(y2, x2) = 255;
-          }
-        }
+      double dx = x; // x: [0, (hough_image.cols-1)]
+      double cosFactor = (-2)*(dx/(hough_image.cols-1)) + 1; // cosFactor: [1, -1]
+
+      for(int x2 = 0; x2 < hough_image.cols; x2++){
+        double theta = x2 * (CV_PI/hough_image.cols); // theta: [0, pi]
+        double rho = (1/sqrt(2))*(cosFactor*cos(theta)+sinFactor*sin(theta)); // rho: [1, -1]
+
+        int y2 = cvRound((hough_image.rows-1)/2 - ((hough_image.rows-1)/2)*rho); // y2: [0, (hough_image.rows-1)]
+
+        //read value from sinusodial curve and add to sum accumulator
+        int val = (int) hough_image.at<uchar>(y2, x2);
+        valSum = valSum + val;
 
       }
+
+      int pval = (int) points_image.at<uchar>(y, x);
+      double pointAvg = valSum;
+      pointAvg = pointAvg/(hough_image.cols);
+      points_image.at<uchar>(y, x) = (uchar) (pointAvg);
+
 	  }
   }
+
+  double min, max;
+  Point minLoc, maxLoc;
+  cv::minMaxLoc(points_image, &min, &max, &minLoc, &maxLoc);
+  points_image = (points_image - min) * (255/(max-min));
+  return maxLoc;
+  //circle(points_image, Point(minLoc, maxLoc), 2, Scalar( 0, 0, 255 ), 2);
+}
+
+//*
+void hough(cv::Mat &thresh_image, cv::Mat &hough_image){
+  for ( int y = 0; y < thresh_image.rows; y++ ){
+		for( int x = 0; x < thresh_image.cols; x++ ){
+
+      int val = (int) thresh_image.at<uchar>(y, x);
+      if (val > 128){
+        double dy = y; // y: [0, (hough_image.rows-1)]
+        double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1; // sinFactor: [1, -1]
+
+        double dx = x; // x: [0, (hough_image.cols-1)]
+        double cosFactor = (-2)*(dx/(hough_image.cols-1)) + 1; // cosFactor: [1, -1]
+
+        for(int x2 = 0; x2 < hough_image.cols; x2++){
+          double theta = x2 * (CV_PI/hough_image.cols); // theta: [0, pi]
+          double rho = (1/sqrt(2))*(cosFactor*cos(theta)+sinFactor*sin(theta)); // rho: [1, -1]
+
+          int y2 = cvRound((hough_image.rows-1)/2 - ((hough_image.rows-1)/2)*rho); // y2: [0, (hough_image.rows-1)]
+
+          //add to value accumulator (this needs to be changed to automatically scale everything correctly rather than truncating)
+          int val = (int) hough_image.at<uchar>(y2, x2);
+          if ((val + 1) <= 255){
+            hough_image.at<uchar>(y2, x2) = (uchar) (val + 1);
+          }
+          else{
+            hough_image.at<uchar>(y2, x2) = (uchar) 255;
+          }
+        }
+      }
+
+	  }
+  }
+
+  //double min, max;
+  //cv::minMaxLoc(hough_image, &min, &max);
+  //hough_image = (hough_image - min) * (255/(max-min));
 }
 
 //*
@@ -168,26 +214,23 @@ void houghtest(cv::Mat &hough_image, float xpercent, float ypercent){
 
   int x = cvRound(xpercent*(hough_image.cols-1));
   int y = cvRound(ypercent*(hough_image.rows-1));
-  //printf("x := %d, y := %d\n", x, y);
 
   ///////////////////////////////////////////////
 
-  double yscale = 0.5;
   int brightness = 128;
 
-  double dx = x;
-  double cosFactor = (-2)*(dx/(hough_image.cols-1)) + 1;
-  double dy = y;
-  double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1;
-  printf("cosFactor := %f, sinFactor := %f\n", cosFactor, sinFactor);
+  double dx = x; // x: [0, (hough_image.cols-1)]
+  double dy = y; // y: [0, (hough_image.rows-1)]
+  double cosFactor = (-2)*(dx/(hough_image.cols-1)) + 1; // cosFactor: [1, -1]
+  double sinFactor = (-2)*(dy/(hough_image.rows-1)) + 1; // sinFactor: [1, -1]
 
   for(int x2 = 0; x2 < hough_image.cols; x2++){
-    double theta = x2 * (2*CV_PI/hough_image.cols);
+    double theta = x2 * (2*CV_PI/hough_image.cols); // theta: [0, 2pi]
+    double rho = (1/sqrt(2))*(cosFactor*cos(theta)+sinFactor*sin(theta)); // rho: [1, -1]
 
-    //int x2 = cvRound(hough_image.cols/2 - hough_image.cols*sinFactor*sin(theta)/2);
-    int y2 = cvRound(hough_image.rows/2 - yscale*hough_image.rows*(cosFactor*cos(theta)+sinFactor*sin(theta))/2);
+    int y2 = cvRound((hough_image.rows-1)/2 - ((hough_image.rows-1)/2)*rho); // y2: [0, (hough_image.rows-1)]
 
-    //this (and y-scale) wouldn't be necessary if you could figure out what yscale should be so that it can never overflow
+    //out of bounds handling (this shouldn't be necessary)
     if (y2 < 0){
       y2 = 0;
     }
@@ -195,7 +238,7 @@ void houghtest(cv::Mat &hough_image, float xpercent, float ypercent){
       y2 = hough_image.rows-1;
     }
 
-    //prevent overflow of value accumulator
+    //add to value accumulator (preventing overflowing above max value 255)
     int val = (int) hough_image.at<uchar>(y2, x2);
     if (val + brightness <= 255){
       hough_image.at<uchar>(y2, x2) = (uchar) (val + brightness);
@@ -203,16 +246,18 @@ void houghtest(cv::Mat &hough_image, float xpercent, float ypercent){
     else{
       hough_image.at<uchar>(y2, x2) = 255;
     }
-
   }
+
 }
 //*/
 
 void linetest(cv::Mat &hough_image){
-  for(int x2 = 0; x2 < hough_image.cols; x2++){
+  printf("rows := %d, cols := %d\n",hough_image.rows, hough_image.cols);
 
-    int y2 = cvRound(hough_image.rows/2 + 20);
-    hough_image.at<uchar>(y2, x2) = 255;
+  for(int y = 0; y < hough_image.rows; y++){
+
+    int x = cvRound(hough_image.cols/2);
+    hough_image.at<uchar>(y, x) = 255;
 
   }
 }
@@ -236,16 +281,12 @@ void sobel(cv::Mat &grey_image, cv::Mat &x_image, cv::Mat &y_image){
 		cv::BORDER_REPLICATE );
 
 	// now we can do the convoltion
-	for ( int i = 0; i < grey_image.rows; i++ )
-	{
-		for( int j = 0; j < grey_image.cols; j++ )
-		{
+	for ( int i = 0; i < grey_image.rows; i++ ){
+		for( int j = 0; j < grey_image.cols; j++ ){
 			double sumX = 0.0;
       double sumY = 0.0;
-			for( int m = -kernelRadiusX; m <= kernelRadiusX; m++ )
-			{
-				for( int n = -kernelRadiusY; n <= kernelRadiusY; n++ )
-				{
+			for( int m = -kernelRadiusX; m <= kernelRadiusX; m++ ){
+				for( int n = -kernelRadiusY; n <= kernelRadiusY; n++ ){
 					// find the correct indices we are using
 					int imagex = i + m + kernelRadiusX;
 					int imagey = j + n + kernelRadiusY;
