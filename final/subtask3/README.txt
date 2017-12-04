@@ -29,5 +29,4 @@ Run each executable using the following lines:
 ./detect
 ./bounding bounding.txt
 
-At the end of this process, you will have all relevent images for all test images at each stages of the classification process. And you will also have the F-Score and TPR% for each test image and the average F-score for all images printed
-to the screen by the "bounding" executable.
+At the end of this process, you will have all relevent images for all test images at each stages of the classification process. And you will also have the F-Score and TPR% for each test image and the average F-score for all images printed to the screen by the "bounding" executable.
