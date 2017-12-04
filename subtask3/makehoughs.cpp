@@ -30,13 +30,13 @@ void thresh(cv::Mat &mag_image, cv::Mat &thresh_image, int threshold){
 
 void hough(cv::Mat &thresh_image, cv::Mat &ang2_image, double angprop, cv::Mat &hough_image){
 
-  //Mat largeHough;
-  //largeHough.create(hough_image.size(), CV_16UC1);
+  Mat largeHough;
+  largeHough.create(hough_image.size(), CV_16UC1);
 
   for ( int y = 0; y < hough_image.rows; y++ ){
 		for( int x = 0; x < hough_image.cols; x++ ){
       hough_image.at<uchar>(y, x) = (uchar) 0;
-      //largeHough.at<uchar>(y, x) = (unsigned int) 0;
+      largeHough.at<ushort>(y, x) = (ushort) 0;
     }
   }
 
@@ -72,16 +72,13 @@ void hough(cv::Mat &thresh_image, cv::Mat &ang2_image, double angprop, cv::Mat &
             int y2 = cvRound((hough_image.rows-1)/2 - ((hough_image.rows-1)/2)*rho); // y2: [0, (hough_image.rows-1)]
 
             //add to value accumulator (this needs to be changed to automatically scale everything correctly rather than truncating)
-            int val = (int) hough_image.at<uchar>(y2, x2);
-            //hough_image.at<uchar>(y2, x2) = (uchar) (val + 1);
-            //*
-            if ((val + 1) <= 255){
-              hough_image.at<uchar>(y2, x2) = (uchar) (val + 1);
+            unsigned int houghval = (unsigned int) largeHough.at<ushort>(y2, x2);
+            if ((houghval + 1) <= 65535){
+              largeHough.at<ushort>(y2, x2) = (ushort) (houghval + 1);
             }
             else{
-              hough_image.at<uchar>(y2, x2) = (uchar) 255;
+              largeHough.at<ushort>(y2, x2) = (ushort) (65535);
             }
-            //*/
           }
         }
         else{
@@ -92,16 +89,13 @@ void hough(cv::Mat &thresh_image, cv::Mat &ang2_image, double angprop, cv::Mat &
             int y2 = cvRound((hough_image.rows-1)/2 - ((hough_image.rows-1)/2)*rho); // y2: [0, (hough_image.rows-1)]
 
             //add to value accumulator (this needs to be changed to automatically scale everything correctly rather than truncating)
-            int val = (int) hough_image.at<uchar>(y2, x2);
-            //hough_image.at<uchar>(y2, x2) = (uchar) (val + 1);
-            //*
-            if ((val + 1) <= 255){
-              hough_image.at<uchar>(y2, x2) = (uchar) (val + 1);
+            unsigned int houghval = (unsigned int) largeHough.at<ushort>(y2, x2);
+            if ((houghval + 1) <= 65535){
+              largeHough.at<ushort>(y2, x2) = (ushort) (houghval + 1);
             }
             else{
-              hough_image.at<uchar>(y2, x2) = (uchar) 255;
+              largeHough.at<ushort>(y2, x2) = (ushort) (65535);
             }
-            //*/
           }
           for(int x2 = 0; x2 < (maxCol+1); x2++){
             double theta = x2 * (CV_PI/hough_image.cols); // theta: [0, pi]
@@ -110,16 +104,13 @@ void hough(cv::Mat &thresh_image, cv::Mat &ang2_image, double angprop, cv::Mat &
             int y2 = cvRound((hough_image.rows-1)/2 - ((hough_image.rows-1)/2)*rho); // y2: [0, (hough_image.rows-1)]
 
             //add to value accumulator (this needs to be changed to automatically scale everything correctly rather than truncating)
-            int val = (int) hough_image.at<uchar>(y2, x2);
-            //hough_image.at<uchar>(y2, x2) = (uchar) (val + 1);
-            //*
-            if ((val + 1) <= 255){
-              hough_image.at<uchar>(y2, x2) = (uchar) (val + 1);
+            unsigned int houghval = (unsigned int) largeHough.at<ushort>(y2, x2);
+            if ((houghval + 1) <= 65535){
+              largeHough.at<ushort>(y2, x2) = (ushort) (houghval + 1);
             }
             else{
-              hough_image.at<uchar>(y2, x2) = (uchar) 255;
+              largeHough.at<ushort>(y2, x2) = (ushort) (65535);
             }
-            //*/
           }
         }
 
@@ -127,6 +118,12 @@ void hough(cv::Mat &thresh_image, cv::Mat &ang2_image, double angprop, cv::Mat &
 
 	  }
   }
+
+  double min, max;
+  cv::minMaxLoc(largeHough, &min, &max);
+  largeHough = 255*(largeHough - min)/(max-min);
+
+  largeHough.convertTo(hough_image, CV_8UC1);
 }
 
 int main( int argc, const char** argv ){

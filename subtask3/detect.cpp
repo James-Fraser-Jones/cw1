@@ -21,7 +21,7 @@ using namespace std;
 using namespace cv;
 
 /** Function Headers */
-void detectAndDisplay(Mat frame, Mat filteredframe, Mat reverse, int checkthresh, ofstream& myfile);
+void detectAndDisplay(Mat frame, Mat filteredframe, Mat reverse, double checkthresh, ofstream& myfile);
 
 /** Global variables */
 String cascade_name = "dartcascade/cascade.xml";
@@ -36,8 +36,8 @@ int main( int argc, const char** argv ){
   }
 
 	//Read command line arguments
-	int checkthresh;
-	sscanf(argv[1],"%d", &checkthresh);
+	double checkthresh;
+	sscanf(argv[1],"%lf", &checkthresh);
 
   //open bounding text file
   ofstream myfile;
@@ -87,7 +87,7 @@ int main( int argc, const char** argv ){
 }
 
 /** @function detectAndDisplay */
-void detectAndDisplay( Mat frame, Mat filteredframe, Mat points_image, int checkthresh, ofstream& myfile){
+void detectAndDisplay( Mat frame, Mat filteredframe, Mat points_image, double checkthresh, ofstream& myfile){
 	std::vector<Rect> darts;
 	Mat frame_gray;
 
@@ -117,6 +117,7 @@ void detectAndDisplay( Mat frame, Mat filteredframe, Mat points_image, int check
 
   //array to store max value of each roi, in the same order as the array of rois
   int vals[size];
+  double checkVal = 0;
   for (int i = 0; i<size; i++){
 
     Mat subimage = points_image(darts[i]);
@@ -124,24 +125,33 @@ void detectAndDisplay( Mat frame, Mat filteredframe, Mat points_image, int check
     double min, max;
     cv::minMaxLoc(subimage, &min, &max);
 
+    if (max > checkVal){
+      checkVal = max;
+    }
     vals[i] = max;
   }
+  checkVal = checkVal*(1-checkthresh);
 
+  /*
   vector<Rect> orderedDarts; //same as darts array but ordered (high to low) by size of max value, given by vals
   for (int i = 0; i<size; i++){
     int maxIndex = distance(vals, max_element(vals, vals + size));
     orderedDarts.push_back(darts[maxIndex]);
     vals[maxIndex] = 0; //don't choose the same highest value twice
   }
+  */
 
-  for (int i = 0; i < min(size, checkthresh); i++){
-    rectangle(filteredframe, Point(orderedDarts[i].x, orderedDarts[i].y), Point(orderedDarts[i].x + orderedDarts[i].width, orderedDarts[i].y + orderedDarts[i].height), Scalar( 0, 255, 0 ), 2);
-    sprintf(buffer, "%d %d %d %d ", orderedDarts[i].x, orderedDarts[i].y, orderedDarts[i].x + orderedDarts[i].width, orderedDarts[i].y + orderedDarts[i].height);
-    myfile << buffer;
+  int count = 0;
+  for (int i = 0; i < size; i++){
+    if (vals[i] > checkVal){
+      rectangle(filteredframe, Point(darts[i].x, darts[i].y), Point(darts[i].x + darts[i].width, darts[i].y + darts[i].height), Scalar( 0, 255, 0 ), 2);
+      sprintf(buffer, "%d %d %d %d ", darts[i].x, darts[i].y, darts[i].x + darts[i].width, darts[i].y + darts[i].height);
+      myfile << buffer;
+      count++;
+    }
   }
 
   //Print number of dartboards after filtering
-  int count = min(size, checkthresh);
   std::cout << count << std::endl;
   //*/
 }
