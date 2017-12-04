@@ -89,9 +89,7 @@ int main( int argc, char** argv ){
   magn(x_image, y_image, mag_image);
   angl2(x_image, y_image, ang2_image);
   thresh(mag_image, thresh_image, 4);
-
   hough(thresh_image, ang2_image, hough_image, angprop);
-  //points(hough_image, points_image);
 
   /*
   houghtest(hough_image, 0, 0); // cos + sin
@@ -107,19 +105,19 @@ int main( int argc, char** argv ){
   */
 
   //show all our images before returning
-  namedWindow( "Original", CV_WINDOW_AUTOSIZE );
-	imshow( "Original", image);
+  //namedWindow( "Original", CV_WINDOW_AUTOSIZE );
+	//imshow( "Original", image);
   //namedWindow( "X-gradient", CV_WINDOW_AUTOSIZE );
 	//imshow( "X-gradient", x_image);
 	//namedWindow( "Y-gradient", CV_WINDOW_AUTOSIZE );
 	//imshow( "Y-gradient", y_image);
-  namedWindow( "Magnitude", CV_WINDOW_AUTOSIZE );
-	imshow( "Magnitude", mag_image);
-  namedWindow("Angle", CV_WINDOW_AUTOSIZE);
-  imshow( "Angle", ang2_image);
-  namedWindow("Thresholded Magnitude", CV_WINDOW_AUTOSIZE);
-	imshow( "Thresholded Magnitude", thresh_image);
-  namedWindow("Hough Space", CV_WINDOW_AUTOSIZE);
+  //namedWindow( "Magnitude", CV_WINDOW_AUTOSIZE );
+	//imshow( "Magnitude", mag_image);
+  //namedWindow("Angle", CV_WINDOW_AUTOSIZE);
+  //imshow( "Angle", ang2_image);
+  //namedWindow("Thresholded Magnitude", CV_WINDOW_AUTOSIZE);
+	//imshow( "Thresholded Magnitude", thresh_image);
+  //namedWindow("Hough Space", CV_WINDOW_AUTOSIZE);
 	imshow( "Hough Space", hough_image);
   //namedWindow("Detected Line Intersections", CV_WINDOW_AUTOSIZE);
 	//imshow( "Detected Line Intersections", points_image);

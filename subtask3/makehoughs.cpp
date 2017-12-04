@@ -29,6 +29,17 @@ void thresh(cv::Mat &mag_image, cv::Mat &thresh_image, int threshold){
 }
 
 void hough(cv::Mat &thresh_image, cv::Mat &ang2_image, double angprop, cv::Mat &hough_image){
+
+  //Mat largeHough;
+  //largeHough.create(hough_image.size(), CV_16UC1);
+
+  for ( int y = 0; y < hough_image.rows; y++ ){
+		for( int x = 0; x < hough_image.cols; x++ ){
+      hough_image.at<uchar>(y, x) = (uchar) 0;
+      //largeHough.at<uchar>(y, x) = (unsigned int) 0;
+    }
+  }
+
   for ( int y = 0; y < thresh_image.rows; y++ ){
 		for( int x = 0; x < thresh_image.cols; x++ ){
 
